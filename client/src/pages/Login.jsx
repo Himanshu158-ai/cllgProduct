@@ -2,8 +2,12 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import axios from 'axios'
 import api from "../axios";
+import { useNavigate } from "react-router-dom";
+import { toast } from 'react-toastify';
+
 
 export default function Login() {
+    const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
 
   const handleChange = (e) =>
@@ -16,9 +20,12 @@ export default function Login() {
       const response = await api.post('/login', {
         formData
       })
-      console.log(response);
+      // console.log(response);
+      toast.success(response.data.message);
+      navigate("/", { state: { user:response.data.user } });
     } catch (error) {
-      console.log(error);
+      // console.log(error.response.data.error);
+      toast.error(error.response.data.error);
     }
   };
 
