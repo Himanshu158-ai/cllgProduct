@@ -1,101 +1,135 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import MonacoEditor from "../components/CodeEditor";
+import api from "../axios";
 
 const CodingPage = () => {
   const [openIndex, setOpenIndex] = useState(null);
+  const [activeQuestion, setActiveQuestion] = useState(null);
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [codes, setCodes] = useState({});
 
-  const questions = [
-    {
-      q: "What is a closure in JavaScript?",
-      a: "A closure is a function that remembers its lexical scope even when executed outside of that scope."
-    },
-    {
-      q: "Explain the event loop in JavaScript.",
-      a: "Event loop handles asynchronous operations by placing callbacks in the task queue and executing them when the call stack is empty."
-    },
-    {
-      q: "Difference between var, let & const?",
-      a: "var = function scoped, let & const = block scoped. const cannot be reassigned."
-    },
-    {
-      q: "What is React Virtual DOM?",
-      a: "Virtual DOM is a lightweight JS representation of the real DOM which improves UI performance."
-    },
-    {
-      q: "Explain useState & useEffect hooks.",
-      a: "useState manages component state, useEffect handles side-effects like API calls."
-    },
-    {
-      q: "What is async/await?",
-      a: "async/await is syntax to write asynchronous code that looks synchronous."
-    },
-    {
-      q: "What is a closure in JavaScript?",
-      a: "A closure is a function that remembers its lexical scope even when executed outside of that scope."
-    },
-    {
-      q: "Explain the event loop in JavaScript.",
-      a: "Event loop handles asynchronous operations by placing callbacks in the task queue and executing them when the call stack is empty."
-    },
-    {
-      q: "Difference between var, let & const?",
-      a: "var = function scoped, let & const = block scoped. const cannot be reassigned."
-    },
-    {
-      q: "What is React Virtual DOM?",
-      a: "Virtual DOM is a lightweight JS representation of the real DOM which improves UI performance."
-    },
-    {
-      q: "Explain useState & useEffect hooks.",
-      a: "useState manages component state, useEffect handles side-effects like API calls."
-    },
-    {
-      q: "What is async/await?",
-      a: "async/await is syntax to write asynchronous code that looks synchronous."
-    },
-  ];
+  // 🔹 FETCH QUESTIONS FROM DB
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const res = await api.get("/api/questions");
+        setQuestions(res.data);
+      } catch (error) {
+        console.log("Fetch error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const toggle = (index) => {
+    fetchQuestions();
+  }, []);
+
+  const toggleQuestion = (index) => {
     setOpenIndex(openIndex === index ? null : index);
+    setActiveQuestion(index);
+  };
+
+  const handleSubmit = () => {
+    if (activeQuestion === null) {
+      alert("❌ Please select a question first");
+      return;
+    }
+
+    const submission = {
+      questionId: questions[activeQuestion]._id, // 🔥 FIX
+      code: codes[activeQuestion] || ""
+    };
+
+    console.log("✅ Submitted Data:", submission);
+    alert("✅ Code submitted successfully!");
   };
 
   return (
-    <div className="h-screen min-h-screen bg-gray-800 p-4 md:p-8">
+    <div className="h-screen bg-linear-to-br from-[#0f172a] via-[#020617] to-black p-4">
       <div className="flex flex-col md:flex-row gap-4 h-full">
 
         {/* LEFT SIDE - QUESTIONS */}
-        <div className="w-full md:w-1/3 bg-white shadow-lg rounded-xl p-5 overflow-auto">
-          <h2 className="text-2xl font-semibold mb-4 border-b pb-2">
-            Coding Questions
+        <div className="w-full md:w-1/3 bg-[#020617]/90 backdrop-blur rounded-2xl p-5 overflow-auto border border-slate-800 shadow-xl">
+          <h2 className="text-2xl font-bold mb-4 text-cyan-400 border-b border-slate-700 pb-2">
+            📘 Assignment Questions
           </h2>
 
-          <div className="space-y-3 text-gray-700">
-            {questions.map((item, index) => (
-              <div key={index}>
-                {/* QUESTION */}
+          {loading ? (
+            <p className="text-slate-400">Loading questions...</p>
+          ) : questions.length === 0 ? (
+            <p className="text-slate-400">No questions available.</p>
+          ) : (
+            <div className="space-y-4">
+              {questions.map((item, index) => (
                 <div
-                  onClick={() => toggle(index)}
-                  className="cursor-pointer p-2 rounded-lg hover:bg-gray-100 transition"
+                  key={item._id}
+                  className={`rounded-xl border transition-all
+                    ${
+                      activeQuestion === index
+                        ? "border-cyan-400 bg-cyan-400/10 shadow-lg"
+                        : "border-slate-700 bg-slate-900 hover:border-cyan-600"
+                    }
+                  `}
                 >
-                  {index + 1}. {item.q}
-                </div>
+                  {/* CLICK AREA */}
+                  <div
+                    onClick={() => toggleQuestion(index)}
+                    className="cursor-pointer p-4 space-y-2"
+                  >
+                    <h3 className="text-cyan-400 font-bold text-lg">
+                      {index + 1}. {item.title}
+                    </h3>
 
-                {/* ANSWER BOX */}
-                {openIndex === index && (
-                  <div className="mt-2 p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
-                    {item.a}
+                    <p className="text-slate-300 text-sm leading-relaxed">
+                      {item.description}
+                    </p>
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
+
+                  {openIndex === index && (
+                    <div className="mx-4 mb-4 p-3 bg-slate-950 border-l-4 border-cyan-400 rounded-lg">
+                      <p className="text-sm text-cyan-300 font-semibold mb-1">
+                        Sample Test Case
+                      </p>
+                      <pre className="text-slate-300 text-sm whitespace-pre-wrap">
+                        {item.testcase}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* RIGHT SIDE */}
-        <div className="flex-1 bg-gray-200 shadow-inner rounded-xl p-6 flex items-center justify-center">
-          {/* <h3 className="text-xl text-gray-600">Right Panel (Empty)</h3> */}
-          <MonacoEditor/>
+        {/* RIGHT SIDE - CODE EDITOR */}
+        <div className="flex-1 rounded-2xl flex flex-col overflow-hidden bg-[#020617] border border-slate-800 shadow-xl">
+
+          <div className="flex-1">
+            <MonacoEditor
+              value={codes[activeQuestion] || "// Select a question & write code"}
+              onChange={(value) =>
+                setCodes({ ...codes, [activeQuestion]: value })
+              }
+            />
+          </div>
+
+          <div className="p-4 flex justify-between items-center bg-slate-900 border-t border-slate-800">
+            <span className="text-slate-400 text-sm">
+              💻 Language: C
+            </span>
+
+            <button
+              onClick={handleSubmit}
+              className="px-8 py-2 rounded-xl font-bold text-black
+                bg-linear-to-r from-cyan-400 to-blue-500
+                hover:from-cyan-300 hover:to-blue-400
+                transition-all shadow-lg"
+            >
+              🚀 Submit Code
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
