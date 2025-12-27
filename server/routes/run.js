@@ -1,50 +1,61 @@
-const router = require("express").Router();
-const { exec } = require("child_process");
+const express = require("express");
+const router = express.Router();
+
 const fs = require("fs");
 const path = require("path");
+const { spawn } = require("child_process");
 
-router.post("/c", (req, res) => {
-  const { code, userInput } = req.body;
+router.post("/", (req, res) => {
+  const { code } = req.body;
 
-  // Unique temp file names (har user ke liye alag)
-  const timestamp = Date.now();
-  const tempFile = `temp_${timestamp}.c`;
-  const outputFile = `temp_${timestamp}.out`;
+  if (!code) {
+    return res.json({ error: "No code provided" });
+  }
 
-  // Write code to temp file
-  fs.writeFileSync(tempFile, code);
+  // 🔹 temp folder project root me
+  const tempDir = path.join(process.cwd(), "temp");
 
-  // Compile C code
-  exec(`gcc ${tempFile} -o ${outputFile}`, (err) => {
-    if (err) {
-      // Compilation error
-      fs.unlinkSync(tempFile); // cleanup
-      return res.json({ error: err.message });
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir);
+  }
+
+  // 🔹 C file likho
+  const filePath = path.join(tempDir, "program.c");
+  fs.writeFileSync(filePath, code.replace(/\r/g, ""));
+
+  // 🔹 Docker args (IMPORTANT: ARRAY, NOT STRING)
+  const dockerArgs = [
+    "run",
+    "--rm",
+    "-t",
+    "-v", `${tempDir}:/app`,
+    "-w", "/app",
+    "gcc:latest",
+    "sh",
+    "-c",
+    "gcc program.c -o program && ./program"
+  ];
+
+  const docker = spawn("docker", dockerArgs);
+
+  let output = "";
+  let errorOutput = "";
+
+  docker.stdout.on("data", (data) => {
+    output += data.toString();
+  });
+
+  docker.stderr.on("data", (data) => {
+    errorOutput += data.toString();
+  });
+
+  docker.on("close", (code) => {
+    if (code !== 0) {
+      return res.json({ error: errorOutput || "Runtime error" });
     }
 
-    // Run compiled program with 2-second timeout
-    const run = exec(`./${outputFile}`, { timeout: 2000 }, (error, stdout, stderr) => {
-      // Cleanup temp files
-      fs.unlinkSync(tempFile);
-      fs.unlinkSync(outputFile);
-
-      if (error) {
-        if (error.killed) {
-          return res.json({ error: "Execution timed out!" });
-        }
-        return res.json({ error: error.message });
-      }
-
-      res.json({ output: stdout || stderr });
-    });
-
-    // Pass user input
-    if (userInput) {
-      run.stdin.write(userInput);
-    }
-    run.stdin.end();
+    res.json({ output: output.trim() });
   });
 });
 
 module.exports = router;
-

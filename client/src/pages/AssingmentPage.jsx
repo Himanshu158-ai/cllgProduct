@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import MonacoEditor from "../components/CodeEditor";
+import { toast } from "react-toastify";
 import api from "../axios";
 
 const CodingPage = () => {
@@ -30,9 +31,9 @@ const CodingPage = () => {
     setActiveQuestion(index);
   };
 
-  const handleSubmit = () => {
+  async function handleSubmit(){
     if (activeQuestion === null) {
-      alert("❌ Please select a question first");
+      toast.error("Please select a question first");
       return;
     }
 
@@ -41,8 +42,13 @@ const CodingPage = () => {
       code: codes[activeQuestion] || ""
     };
 
-    console.log("✅ Submitted Data:", submission);
-    alert("✅ Code submitted successfully!");
+    try {
+      let res = await api.post("/run",submission);
+      toast.success("Submited");
+      console.log(res.data.output);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   return (

@@ -13,7 +13,7 @@ const questionSchema = new mongoose.Schema(
     testcase: {
       type: String,
       required: true
-    }
+    },
   },
   { timestamps: true }
 );

@@ -32,6 +32,9 @@ router.get("/", async (req, res) => {
     res.json(questions);
   } catch (err) {
     res.status(500).json({ error: "Server error" });
+  //   console.log("Fetch error:", error);
+  // console.log("Response:", error.response);
+  // console.log("Message:", error.message);
   }
 });
 
